@@ -1,7 +1,6 @@
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain_community.vectorstores import FAISS
-
 from langchain_core.prompts import ChatPromptTemplate
 
 from langchain_community.document_loaders import PyPDFLoader
@@ -40,8 +39,8 @@ async def read_pdfs(filepaths):
     return book_pages
 
 
-def get_retreiver(filepaths):
-    book_pages = await read_pdf(filepaths)
+async def get_retriever(filepaths, embeddings):
+    book_pages =await read_pdfs(filepaths)
     vectorstore = FAISS.from_documents(book_pages, embeddings)
     retriever = vectorstore.as_retriever()
     return retriever
@@ -51,7 +50,7 @@ def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
 
 
-def get_rag_chain(retriever, llm, prompt)
+def get_rag_chain(retriever, llm, prompt):
     # Define the second chain with LLM 1
     rag_chain = (
         {"context": retriever | format_docs, "question": RunnablePassthrough()}
