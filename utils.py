@@ -7,24 +7,23 @@ from langchain_community.document_loaders import PyPDFLoader
 
 
 
-prompt_ = ChatPromptTemplate.from_messages([
-    (
-        "system",
-        """You are an expert assistant specialized in answering specific types
+prompt_ = ChatPromptTemplate.from_template("""You are an expert assistant specialized in answering specific types
          of questions—such as multiple choice, true/false, and multiple correct
-          selections—on a designated topic. You have access to key contextual
+          selections—on Huawei OpenEuler and OpenGuass. You have access to key contextual
            information from a book. Use this context to accurately answer the
             user's question. If the context lacks critical detail, supplement
              your response with relevant knowledge to maintain accuracy. Provide
               a concise, precise answer that matches the format of the question
                (e.g., options for MCQs, True/False for statements), ensuring the
-                response is complete and directly addresses the question.""",
-    ),
-    ("user", """Please answer this question based on the context
-     provided. Question: {question}. Context: {context}"""),
-])
+                response is complete and directly addresses the question. 
+                Provide output in following format:[
+                Correct Options : [correct options]
+                Reasoning of each option.
+                ]
 
-simple_prompt = ChatPromptTemplate.from_template("Please answer this question with very concise explaination. Question: {question}.")
+                Question: {question}.
+                Context: {context}""")
+simple_prompt = ChatPromptTemplate.from_template("Please answer this question with very concise explaination of each option. Question: {question}.")
 
 
 
@@ -60,3 +59,22 @@ def get_rag_chain(retriever, llm, prompt):
     )
     return rag_chain
 
+
+def format_docs_exp(docs, llm_exp):
+    
+
+    output = "\n\n".join(doc.page_content for doc in docs)
+    output = llm_exp.invoke("Explain these slides in points: "+output).content
+
+    return output
+
+
+def get_rag_chain_custom(retriever, llm_main, llm_exp, prompt):
+    format_redefined = lambda x: format_docs_exp(x, llm_exp)
+    rag_chain = (
+        {"context": retriever | format_redefined, "question": RunnablePassthrough()}
+        | prompt
+        | llm_main
+        | StrOutputParser()
+    )
+    return rag_chain
